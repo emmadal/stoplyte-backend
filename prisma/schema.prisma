@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model accounts {
+  uid                                                 String                     @id(map: "accounts_pk") @db.VarChar
+  email                                               String?                    @db.VarChar
+  displayName                                         String                     @db.VarChar
+  image                                               String?                    @db.VarChar
+  deletedAt                                           DateTime?                  @db.Timestamp(6)
+  createdAt                                           DateTime                   @default(now()) @db.Timestamp(6)
+  pushNotificationTokens                              String[]                   @db.VarChar
+  subscription                                        String?                    @db.VarChar
+  phone                                               String?                    @db.VarChar
+  hasPreApprovalLetter                                Boolean                    @default(false)
+  workingWithAgent                                    Boolean                    @default(false)
+  verificationStatus                                  String?                    @db.VarChar
+  systemRole                                          String                     @default("user") @db.VarChar
+  claimed_property                                    claimed_property[]
+  contact_request_contact_request_buyerToaccounts     contact_request[]          @relation("contact_request_buyerToaccounts")
+  contact_request_contact_request_initiatorToaccounts contact_request[]          @relation("contact_request_initiatorToaccounts")
+  contact_request_contact_request_sellerToaccounts    contact_request[]          @relation("contact_request_sellerToaccounts")
+  contact_unlisted_request                            contact_unlisted_request[]
+  saved_searches                                      saved_searches[]
+}
+
+model cached_response {
+  key                  String   @id(map: "cached_response_pk") @db.VarChar
+  cached_data          Json     @db.Json
+  last_cached_datetime DateTime @db.Timestamp(6)
+}
+
+model claimed_property {
+  realstateId              String            @id(map: "claimedproperty_pk") @db.VarChar
+  askingPrice              Float?          
+  owner                    String            @db.VarChar
+  highlights               String?           @db.VarChar
+  saleConditions           String?           @db.VarChar
+  sellerDisclosureDocument Boolean           @default(false)
+  copyTitleDocument        Boolean           @default(false)
+  pictures                 String[]          @db.VarChar
+  listed                   Boolean           @default(false)
+  slug                     String            @db.VarChar
+  createdAt                DateTime          @default(now()) @db.Timestamp(6)
+  status                   String?           @db.VarChar
+  accounts                 accounts          @relation(fields: [owner], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "claimed_property_accounts_fk")
+  contact_request          contact_request[]
+}
+
+model contact_request {
+  seller                                       String           @db.VarChar
+  buyer                                        String           @db.VarChar
+  buyerApprovedAt                              DateTime?        @db.Timestamp(6)
+  sellerApprovedAt                             DateTime?        @db.Timestamp(6)
+  propertyId                                   String           @db.VarChar
+  initiator                                    String           @db.VarChar
+  accounts_contact_request_buyerToaccounts     accounts         @relation("contact_request_buyerToaccounts", fields: [buyer], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contact_buyer")
+  claimed_property                             claimed_property @relation(fields: [propertyId], references: [realstateId], onDelete: Cascade, onUpdate: NoAction, map: "contact_request_claimed_property_fk")
+  accounts_contact_request_initiatorToaccounts accounts         @relation("contact_request_initiatorToaccounts", fields: [initiator], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contact_request_initiator")
+  accounts_contact_request_sellerToaccounts    accounts         @relation("contact_request_sellerToaccounts", fields: [seller], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contact_seller")
+
+  @@id([seller, buyer], map: "contact_request_pk")
+}
+
+model saved_searches {
+  uid                  String   @id(map: "saved_searches_pk") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                 String   @db.VarChar
+  needs                String   @db.VarChar
+  desires              String   @db.VarChar
+  markets              Json[]   @db.Json
+  visibleToSellers     Boolean
+  hasPreApprovalLetter Boolean
+  workingWithAgent     Boolean
+  buyer                String   @db.VarChar
+  search               Json     @db.Json
+  allowNotifications   Boolean  @default(false)
+  accounts             accounts @relation(fields: [buyer], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "saved_searches_buyer")
+}
+
+model contact_unlisted_request {
+  buyer        String   @db.VarChar
+  propertyId   String   @db.VarChar
+  uid          String   @id(map: "contact_unlisted_request_pk") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email        String   @db.VarChar
+  phone        String   @db.VarChar
+  message      String?  @db.VarChar
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  propertySlug String   @db.VarChar
+  accounts     accounts @relation(fields: [buyer], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contact_unlisted_request_accounts_fk")
+}
+
+model partners {
+  uid         String    @id @db.VarChar(255)
+  date_record DateTime? @db.Date
+  name        String    @db.VarChar(255)
+  phone       String?   @db.VarChar(50)
+  address     String?
+  email       String?   @db.VarChar(255)
+  website     String?   @db.VarChar(255)
+  category    String?   @db.VarChar(255)
+  tags        String?   @db.VarChar(500)
+  image       String?   @db.VarChar(255)
+  location    String    @db.VarChar(255)
+}
