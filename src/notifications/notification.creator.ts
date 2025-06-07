@@ -8,7 +8,11 @@ export async function sendNotification(
   switch (createNotification.type) {
     case 'email':
       await sendEmails(createNotification);
+      break;
     case 'sms':
       await sendMultipleSMS(createNotification);
+      break;
+    default:
+      break;
   }
 }
