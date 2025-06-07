@@ -27,6 +27,7 @@ model accounts {
   contact_request_contact_request_sellerToaccounts    contact_request[]          @relation("contact_request_sellerToaccounts")
   contact_unlisted_request                            contact_unlisted_request[]
   saved_searches                                      saved_searches[]
+  transactions                                        transactions[]
 }
 
 model cached_response {
@@ -37,7 +38,7 @@ model cached_response {
 
 model claimed_property {
   realstateId              String            @id(map: "claimedproperty_pk") @db.VarChar
-  askingPrice              Float?          
+  askingPrice              Float?
   owner                    String            @db.VarChar
   highlights               String?           @db.VarChar
   saleConditions           String?           @db.VarChar
@@ -50,6 +51,7 @@ model claimed_property {
   status                   String?           @db.VarChar
   accounts                 accounts          @relation(fields: [owner], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "claimed_property_accounts_fk")
   contact_request          contact_request[]
+  transactions             transactions[]
 }
 
 model contact_request {
@@ -68,7 +70,7 @@ model contact_request {
 }
 
 model saved_searches {
-  uid                  String   @id(map: "saved_searches_pk") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  uid                  String   @id(map: "saved_searches_pk") @default(uuid()) @db.Uuid
   name                 String   @db.VarChar
   needs                String   @db.VarChar
   desires              String   @db.VarChar
@@ -85,7 +87,7 @@ model saved_searches {
 model contact_unlisted_request {
   buyer        String   @db.VarChar
   propertyId   String   @db.VarChar
-  uid          String   @id(map: "contact_unlisted_request_pk") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  uid          String   @id(map: "contact_unlisted_request_pk") @default(uuid()) @db.Uuid
   email        String   @db.VarChar
   phone        String   @db.VarChar
   message      String?  @db.VarChar
@@ -106,4 +108,29 @@ model partners {
   tags        String?   @db.VarChar(500)
   image       String?   @db.VarChar(255)
   location    String    @db.VarChar(255)
+}
+
+model transactions {
+  uid                   String           @id(map: "transactions_pk") @default(uuid()) @db.Uuid
+  amount                Float
+  paymentMethodType     String           @db.VarChar
+  object                String           @db.VarChar
+  paymentReference      String           @db.VarChar
+  currency              String           @default("usd") @db.VarChar(5)
+  status                String           @db.VarChar
+  description           String?          @db.VarChar
+  claimed_property_id   String           @db.VarChar
+  claimed_property      claimed_property @relation(fields: [claimed_property_id], references: [realstateId], onDelete: NoAction, onUpdate: NoAction, map: "transactions_claimed_property_fk")
+  accounts_uid          String           @db.VarChar
+  accounts              accounts         @relation(fields: [accounts_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "transactions_accounts_fk")
+  createdAt             DateTime         @default(now()) @db.Timestamp(6)
+  
+  // Stripe webhook related fields
+  stripePaymentIntentId String?          @unique @db.VarChar
+  paidAt                DateTime?        @db.Timestamp(6)
+  errorMessage          String?          @db.VarChar(255)
+  refundedAt            DateTime?        @db.Timestamp(6)
+  disputeStatus         String?          @db.VarChar(50)
+  disputeReason         String?          @db.VarChar(100)
+  disputeResolvedAt     DateTime?        @db.Timestamp(6)
 }
