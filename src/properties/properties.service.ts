@@ -13,6 +13,7 @@ export class PropertiesService {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
     private prisma: PrismaService,
+    private accountsService: AccountsService,
   ) {}
 
   async autocompleteProperties(searchTerm: string, searchType: string) {
@@ -179,11 +180,8 @@ export class PropertiesService {
 
   async getRequestStatus(id: string) {
     let requestContactStatus = undefined;
-    const tokenInfo = await AccountsService.getUserDetailsFromToken(
-      this.request,
-      this.prisma,
-    );
-    if (tokenInfo?.uid && tokenInfo.subscription === 'buyer') {
+    const tokenInfo = await this.accountsService.getMe();
+    if (tokenInfo?.subscription === 'buyer') {
       requestContactStatus = 'no_request';
       const cr = await this.prisma.contact_request.findFirst({
         where: {
@@ -218,7 +216,7 @@ export class PropertiesService {
     message: string,
     phone: string,
   ) {
-    const currentUser = await AccountsService.getMe(this.prisma, this.request);
+    const currentUser = await this.accountsService.getMe();
 
     const exists = await this.prisma.contact_unlisted_request.count({
       where: {
