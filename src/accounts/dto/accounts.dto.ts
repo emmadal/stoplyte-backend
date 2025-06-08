@@ -1,22 +1,31 @@
 import {
   IsString,
+  IsNotEmpty,
   IsOptional,
   IsUrl,
   IsNumber,
   IsBoolean,
   IsArray,
+  IsEmail,
 } from 'class-validator';
 
 export class CreateAccountDTO {
   @IsString()
+  @IsOptional()
   readonly uid: string;
 
   @IsString()
+  @IsNotEmpty()
   readonly displayName: string;
 
   @IsString()
-  @IsOptional()
+  @IsEmail()
+  @IsNotEmpty()
   readonly email: string;
+
+  @IsString()
+  @IsOptional()
+  password: string;
 
   @IsString()
   @IsOptional()
@@ -25,6 +34,7 @@ export class CreateAccountDTO {
   @IsUrl()
   @IsOptional()
   readonly image: string;
+  
 
   @IsString()
   @IsOptional()
@@ -73,4 +83,14 @@ export class ListPropertyDTO {
 
   @IsString()
   readonly status: string;
+}
+
+export class LoginAccountDTO {
+  @IsString()
+  @IsNotEmpty()
+  readonly email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  readonly password: string;
 }

@@ -1,20 +1,41 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Res,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import {
   CreateAccountDTO,
   ListPropertyDTO,
+  LoginAccountDTO,
   UpdateAccountDTO,
 } from './dto/accounts.dto';
 import { REQUEST } from '@nestjs/core';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+
+// Define the interface for JWT user
+interface JwtUser {
+  sub: string;
+  roles: string[];
+}
+
+// Extend the Express Request type to include our JWT user
+interface RequestWithUser extends Request {
+  user: JwtUser;
+}
+
 import axios from 'axios';
 import { FirebaseAdminService } from 'src/firebase/firebase-admin.service';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class AccountsService {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
+    @Inject(REQUEST) private readonly request: RequestWithUser,
     private prisma: PrismaService,
+    private utilsService: UtilsService,
   ) {}
 
   public static getUserFromToken(request): { user_id: string } | null {
@@ -47,56 +68,71 @@ export class AccountsService {
     });
   }
 
-  async createAccount(createAccountDTO: CreateAccountDTO) {
-    const tokenInfo = AccountsService.getUserFromToken(this.request);
-
-    if (!tokenInfo) {
-      return null;
-    }
-
-    if (tokenInfo.user_id !== createAccountDTO.uid) {
-      return null;
-    }
-
+  async createWithPassword(createAccountDTO: CreateAccountDTO) {
     const existingUser = await this.prisma.accounts.findFirst({
       where: {
-        uid: createAccountDTO.uid,
+        email: createAccountDTO.email,
       },
     });
-
-    const allPushNotificationTokens = [];
-    if (createAccountDTO.pushNotificationToken) {
-      allPushNotificationTokens.push(createAccountDTO.pushNotificationToken);
-    }
-
-    if (existingUser?.pushNotificationTokens?.length) {
-      allPushNotificationTokens.push(...existingUser.pushNotificationTokens);
-    }
-
-    const inputData = {
-      ...createAccountDTO,
-      pushNotificationTokens: [...new Set(allPushNotificationTokens)],
-    };
-
-    delete inputData.pushNotificationToken;
-
     if (existingUser) {
-      delete inputData.subscription;
-
-      await this.prisma.accounts.update({
-        data: {
-          pushNotificationTokens: inputData.pushNotificationTokens,
-        },
-        where: {
-          uid: createAccountDTO.uid,
-        },
-      });
-      return existingUser;
+      throw new HttpException('User already exists', HttpStatus.CONFLICT);
     }
-
-    return this.prisma.accounts.create({
-      data: inputData,
+    if (
+      !createAccountDTO.password.trim() ||
+      createAccountDTO.password.trim() === ''
+    ) {
+      throw new HttpException('Password is required', HttpStatus.BAD_REQUEST);
+    }
+    createAccountDTO.password = await UtilsService.hashPassword(
+      createAccountDTO.password,
+    );
+    const user = await this.prisma.accounts.create({
+      data: createAccountDTO,
     });
+    const token = await this.utilsService.generateJWTToken(user.uid);
+    return { user, token };
+  }
+
+  async createAccountWithGoogle(createAccountDTO: CreateAccountDTO) {
+    const existingUser = await this.prisma.accounts.findFirst({
+      where: {
+        email: createAccountDTO.email,
+      },
+    });
+    if (existingUser) {
+      throw new HttpException('User already exists', HttpStatus.CONFLICT);
+    }
+    const user = await this.prisma.accounts.create({
+      data: createAccountDTO,
+    });
+    const token = await this.utilsService.generateJWTToken(user.uid);
+    return { user, token };
+  }
+
+  async login(loginEventDto: LoginAccountDTO) {
+    const user = await this.prisma.accounts.findFirst({
+      where: {
+        email: loginEventDto.email,
+        AND: {
+          isActive: true,
+        },
+      },
+    });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    const isPasswordValid = await UtilsService.comparePassword(
+      loginEventDto.password,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      throw new HttpException(
+        'Email or password is incorrect',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const token = await this.utilsService.generateJWTToken(user.uid);
+    return { user, token };
   }
 
   updateAccount(updateAccountDTO: UpdateAccountDTO) {
@@ -116,18 +152,19 @@ export class AccountsService {
     });
   }
 
-  getMe() {
-    return AccountsService.getMe(this.prisma, this.request);
-  }
+  async getMe() {
+    // Get the user ID from the JWT token that was validated by the JwtAuthGuard
+    const user = this.request.user;
 
-  static getMe(prisma: PrismaService, request: Request) {
-    const tokenInfo = AccountsService.getUserFromToken(request);
-
-    if (!tokenInfo) {
-      return null;
+    if (!user || !user.sub) {
+      throw new HttpException('User not found', HttpStatus.UNAUTHORIZED);
     }
 
-    return prisma.accounts.findFirst({
+    // Find the user in the database using the userId from the JWT payload
+    const account = await this.prisma.accounts.findUnique({
+      where: {
+        uid: user.sub,
+      },
       include: {
         claimed_property: {
           select: {
@@ -136,10 +173,14 @@ export class AccountsService {
           },
         },
       },
-      where: {
-        uid: tokenInfo.user_id,
-      },
     });
+
+    if (!account) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    // Return sanitized user data (removes sensitive information)
+    return this.sanitizeAccountData(account);
   }
 
   updateSubscription(subscription: 'buyer' | 'seller') {
@@ -720,5 +761,51 @@ export class AccountsService {
     }
 
     return AccountsService.CACHED_USERS[uid];
+  }
+
+  public sanitizeAccountData(
+    account: Record<string, any>,
+  ): Record<string, any> {
+    const sensitiveFields = ['password', 'deletedAt', 'isActive', 'createdAt'];
+
+    return Object.entries(account).reduce(
+      (sanitized, [key, value]) => {
+        if (!sensitiveFields.includes(key)) {
+          sanitized[key] = value;
+        }
+        return sanitized;
+      },
+      {} as Record<string, any>,
+    );
+  }
+
+  setCookie(token: string, res: Response) {
+    const cookieDuration = 24 * 60 * 60 * 1000;
+    const expirationDate = new Date(Date.now() + cookieDuration);
+    const isDev = process.env.NODE_ENV === 'development';
+
+    res.cookie('stk', token, {
+      httpOnly: true,
+      // When using the sameSite: 'none', secure must be true (even in development)
+      // For local development with http://localhost, use 'lax' instead
+      secure: isDev ? false : true,
+      sameSite: isDev ? 'lax' : 'none',
+      maxAge: cookieDuration,
+      expires: expirationDate,
+      path: '/',
+      signed: process.env.COOKIE_SECRET ? true : false,
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
+    });
+  }
+
+  removeCookie(res: Response) {
+    const isDev = process.env.NODE_ENV === 'development';
+    res.clearCookie('stk', {
+      httpOnly: true,
+      secure: isDev ? false : true,
+      sameSite: isDev ? 'lax' : 'none',
+      path: '/',
+      domain: process.env.COOKIE_DOMAIN || 'localhost',
+    });
   }
 }

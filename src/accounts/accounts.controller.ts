@@ -1,4 +1,14 @@
-import { Controller, Body, Post, Get, Put, Param } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Post,
+  Get,
+  Put,
+  Param,
+  Res,
+  Delete,
+} from '@nestjs/common';
+import { Response } from 'express';
 
 import { Roles } from 'src/decorators/roles.decorator';
 import { Public } from 'src/decorators/public.decorator';
@@ -6,6 +16,7 @@ import { AccountsService } from './accounts.service';
 import {
   CreateAccountDTO,
   ListPropertyDTO,
+  LoginAccountDTO,
   UpdateAccountDTO,
 } from './dto/accounts.dto';
 import { CreatePropertySubmissionDto } from './dto/home-value.dto';
@@ -17,10 +28,36 @@ import * as mustache from 'mustache';
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
-  @Post()
+  @Post('/signup')
   @Public()
-  async create(@Body() createEventDto: CreateAccountDTO) {
-    return this.accountsService.createAccount(createEventDto);
+  async signup(@Body() createEventDto: CreateAccountDTO, @Res() res: Response) {
+    const { user, token } =
+      await this.accountsService.createWithPassword(createEventDto);
+    this.accountsService.setCookie(token, res);
+    const sanitizedData = this.accountsService.sanitizeAccountData(user);
+    return res.json(sanitizedData);
+  }
+
+  @Post('/signup-with-google')
+  @Public()
+  async signupWithGoogle(
+    @Body() createEventDto: CreateAccountDTO,
+    @Res() res: Response,
+  ) {
+    const { user, token } =
+      await this.accountsService.createAccountWithGoogle(createEventDto);
+    this.accountsService.setCookie(token, res);
+    const sanitizedData = this.accountsService.sanitizeAccountData(user);
+    return res.json(sanitizedData);
+  }
+
+  @Post('/login')
+  @Public()
+  async login(@Body() loginEventDto: LoginAccountDTO, @Res() res: Response) {
+    const { user, token } = await this.accountsService.login(loginEventDto);
+    this.accountsService.setCookie(token, res);
+    const sanitizedData = this.accountsService.sanitizeAccountData(user);
+    return res.json(sanitizedData);
   }
 
   @Post('/learn-home-value')
@@ -150,5 +187,11 @@ export class AccountsController {
   @Roles('user')
   async declineContact(@Param('uid') contactUid: string) {
     return this.accountsService.declineContact(contactUid);
+  }
+
+  @Delete('/me/logout')
+  async logout(@Res() res: Response) {
+    this.accountsService.removeCookie(res);
+    return res.redirect(process.env.FRONTEND_URL);
   }
 }
