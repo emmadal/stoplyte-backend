@@ -1,8 +1,10 @@
 -- CreateTable
 CREATE TABLE "accounts" (
-    "uid" VARCHAR NOT NULL,
+    "uid" UUID NOT NULL,
     "email" VARCHAR,
     "displayName" VARCHAR NOT NULL,
+    "password" VARCHAR,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "image" VARCHAR,
     "deletedAt" TIMESTAMP(6),
     "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -30,7 +32,7 @@ CREATE TABLE "cached_response" (
 CREATE TABLE "claimed_property" (
     "realstateId" VARCHAR NOT NULL,
     "askingPrice" DOUBLE PRECISION,
-    "owner" VARCHAR NOT NULL,
+    "owner" UUID NOT NULL,
     "highlights" VARCHAR,
     "saleConditions" VARCHAR,
     "sellerDisclosureDocument" BOOLEAN NOT NULL DEFAULT false,
@@ -46,12 +48,12 @@ CREATE TABLE "claimed_property" (
 
 -- CreateTable
 CREATE TABLE "contact_request" (
-    "seller" VARCHAR NOT NULL,
-    "buyer" VARCHAR NOT NULL,
+    "seller" UUID NOT NULL,
+    "buyer" UUID NOT NULL,
     "buyerApprovedAt" TIMESTAMP(6),
     "sellerApprovedAt" TIMESTAMP(6),
     "propertyId" VARCHAR NOT NULL,
-    "initiator" VARCHAR NOT NULL,
+    "initiator" UUID NOT NULL,
 
     CONSTRAINT "contact_request_pk" PRIMARY KEY ("seller","buyer")
 );
@@ -66,7 +68,7 @@ CREATE TABLE "saved_searches" (
     "visibleToSellers" BOOLEAN NOT NULL,
     "hasPreApprovalLetter" BOOLEAN NOT NULL,
     "workingWithAgent" BOOLEAN NOT NULL,
-    "buyer" VARCHAR NOT NULL,
+    "buyer" UUID NOT NULL,
     "search" JSON NOT NULL,
     "allowNotifications" BOOLEAN NOT NULL DEFAULT false,
 
@@ -75,7 +77,7 @@ CREATE TABLE "saved_searches" (
 
 -- CreateTable
 CREATE TABLE "contact_unlisted_request" (
-    "buyer" VARCHAR NOT NULL,
+    "buyer" UUID NOT NULL,
     "propertyId" VARCHAR NOT NULL,
     "uid" UUID NOT NULL,
     "email" VARCHAR NOT NULL,
@@ -89,7 +91,7 @@ CREATE TABLE "contact_unlisted_request" (
 
 -- CreateTable
 CREATE TABLE "partners" (
-    "uid" VARCHAR(255) NOT NULL,
+    "uid" UUID NOT NULL,
     "date_record" DATE,
     "name" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(50),
@@ -101,7 +103,7 @@ CREATE TABLE "partners" (
     "image" VARCHAR(255),
     "location" VARCHAR(255) NOT NULL,
 
-    CONSTRAINT "partners_pkey" PRIMARY KEY ("uid")
+    CONSTRAINT "partners_pk" PRIMARY KEY ("uid")
 );
 
 -- CreateTable
@@ -115,7 +117,7 @@ CREATE TABLE "transactions" (
     "status" VARCHAR NOT NULL,
     "description" VARCHAR,
     "claimed_property_id" VARCHAR NOT NULL,
-    "accounts_uid" VARCHAR NOT NULL,
+    "accounts_uid" UUID NOT NULL,
     "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "stripePaymentIntentId" VARCHAR,
     "paidAt" TIMESTAMP(6),

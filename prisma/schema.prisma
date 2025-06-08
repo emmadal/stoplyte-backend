@@ -8,9 +8,11 @@ datasource db {
 }
 
 model accounts {
-  uid                                                 String                     @id(map: "accounts_pk") @db.VarChar
+  uid                                                 String                     @id(map: "accounts_pk") @default(uuid()) @db.Uuid
   email                                               String?                    @db.VarChar
   displayName                                         String                     @db.VarChar
+  password                                            String?                    @db.VarChar
+  isActive                                            Boolean                    @default(true)
   image                                               String?                    @db.VarChar
   deletedAt                                           DateTime?                  @db.Timestamp(6)
   createdAt                                           DateTime                   @default(now()) @db.Timestamp(6)
@@ -39,7 +41,7 @@ model cached_response {
 model claimed_property {
   realstateId              String            @id(map: "claimedproperty_pk") @db.VarChar
   askingPrice              Float?
-  owner                    String            @db.VarChar
+  owner                    String            @db.Uuid
   highlights               String?           @db.VarChar
   saleConditions           String?           @db.VarChar
   sellerDisclosureDocument Boolean           @default(false)
@@ -55,12 +57,12 @@ model claimed_property {
 }
 
 model contact_request {
-  seller                                       String           @db.VarChar
-  buyer                                        String           @db.VarChar
+  seller                                       String           @db.Uuid
+  buyer                                        String           @db.Uuid
   buyerApprovedAt                              DateTime?        @db.Timestamp(6)
   sellerApprovedAt                             DateTime?        @db.Timestamp(6)
   propertyId                                   String           @db.VarChar
-  initiator                                    String           @db.VarChar
+  initiator                                    String           @db.Uuid
   accounts_contact_request_buyerToaccounts     accounts         @relation("contact_request_buyerToaccounts", fields: [buyer], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contact_buyer")
   claimed_property                             claimed_property @relation(fields: [propertyId], references: [realstateId], onDelete: Cascade, onUpdate: NoAction, map: "contact_request_claimed_property_fk")
   accounts_contact_request_initiatorToaccounts accounts         @relation("contact_request_initiatorToaccounts", fields: [initiator], references: [uid], onDelete: Cascade, onUpdate: NoAction, map: "contact_request_initiator")
@@ -78,14 +80,14 @@ model saved_searches {
   visibleToSellers     Boolean
   hasPreApprovalLetter Boolean
   workingWithAgent     Boolean
-  buyer                String   @db.VarChar
+  buyer                String   @db.Uuid
   search               Json     @db.Json
   allowNotifications   Boolean  @default(false)
   accounts             accounts @relation(fields: [buyer], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "saved_searches_buyer")
 }
 
 model contact_unlisted_request {
-  buyer        String   @db.VarChar
+  buyer        String   @db.Uuid
   propertyId   String   @db.VarChar
   uid          String   @id(map: "contact_unlisted_request_pk") @default(uuid()) @db.Uuid
   email        String   @db.VarChar
@@ -97,7 +99,7 @@ model contact_unlisted_request {
 }
 
 model partners {
-  uid         String    @id @db.VarChar(255)
+  uid         String    @id(map: "partners_pk") @default(uuid()) @db.Uuid
   date_record DateTime? @db.Date
   name        String    @db.VarChar(255)
   phone       String?   @db.VarChar(50)
@@ -111,26 +113,26 @@ model partners {
 }
 
 model transactions {
-  uid                   String           @id(map: "transactions_pk") @default(uuid()) @db.Uuid
-  amount                Float
-  paymentMethodType     String           @db.VarChar
-  object                String           @db.VarChar
-  paymentReference      String           @db.VarChar
-  currency              String           @default("usd") @db.VarChar(5)
-  status                String           @db.VarChar
-  description           String?          @db.VarChar
-  claimed_property_id   String           @db.VarChar
-  claimed_property      claimed_property @relation(fields: [claimed_property_id], references: [realstateId], onDelete: NoAction, onUpdate: NoAction, map: "transactions_claimed_property_fk")
-  accounts_uid          String           @db.VarChar
-  accounts              accounts         @relation(fields: [accounts_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "transactions_accounts_fk")
-  createdAt             DateTime         @default(now()) @db.Timestamp(6)
-  
+  uid                 String           @id(map: "transactions_pk") @default(uuid()) @db.Uuid
+  amount              Float
+  paymentMethodType   String           @db.VarChar
+  object              String           @db.VarChar
+  paymentReference    String           @db.VarChar
+  currency            String           @default("usd") @db.VarChar(5)
+  status              String           @db.VarChar
+  description         String?          @db.VarChar
+  claimed_property_id String           @db.VarChar
+  claimed_property    claimed_property @relation(fields: [claimed_property_id], references: [realstateId], onDelete: NoAction, onUpdate: NoAction, map: "transactions_claimed_property_fk")
+  accounts_uid        String           @db.Uuid
+  accounts            accounts         @relation(fields: [accounts_uid], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "transactions_accounts_fk")
+  createdAt           DateTime         @default(now()) @db.Timestamp(6)
+
   // Stripe webhook related fields
-  stripePaymentIntentId String?          @unique @db.VarChar
-  paidAt                DateTime?        @db.Timestamp(6)
-  errorMessage          String?          @db.VarChar(255)
-  refundedAt            DateTime?        @db.Timestamp(6)
-  disputeStatus         String?          @db.VarChar(50)
-  disputeReason         String?          @db.VarChar(100)
-  disputeResolvedAt     DateTime?        @db.Timestamp(6)
+  stripePaymentIntentId String?   @unique @db.VarChar
+  paidAt                DateTime? @db.Timestamp(6)
+  errorMessage          String?   @db.VarChar(255)
+  refundedAt            DateTime? @db.Timestamp(6)
+  disputeStatus         String?   @db.VarChar(50)
+  disputeReason         String?   @db.VarChar(100)
+  disputeResolvedAt     DateTime? @db.Timestamp(6)
 }
