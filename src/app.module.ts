@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { FirebaseAuthModule } from './firebase/firebase-auth.module';
 import { APP_GUARD } from '@nestjs/core';
-import { FirebaseAuthGuard } from './firebase/firebase-auth.guard';
 import { AccountsModule } from './accounts/accounts.module';
 import { PrismaModule } from './database/prisma.module';
 import { PropertiesModule } from './properties/properties.module';
@@ -13,6 +12,11 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { AdminsModule } from './admin/admin.module';
 import { PartnersModule } from './partners/partners.module';
 import { ConfigModule } from '@nestjs/config';
+import { TransactionModule } from './transaction/transaction.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtAuthGuard } from './utils/jwt-auth.guard';
+import { UtilsModule } from './utils/utils.module';
 
 @Module({
   imports: [
@@ -23,6 +27,19 @@ import { ConfigModule } from '@nestjs/config';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1d' },
+      global: true,
+    }),
     PassportModule,
     FirebaseAuthModule,
     PrismaModule,
@@ -32,11 +49,13 @@ import { ConfigModule } from '@nestjs/config';
     StorageModule,
     AdminsModule,
     PartnersModule,
+    TransactionModule,
+    UtilsModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: FirebaseAuthGuard,
+      useClass: JwtAuthGuard,
     },
   ],
 })

@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { subDays, subMinutes } from 'date-fns';
+import { subMinutes } from 'date-fns';
 import { PrismaService } from '../database/prisma.service';
-import path from 'path';
-import fs from 'fs';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UtilsService {
+  constructor(private jwtService: JwtService) {}
+
   public static slugify(url) {
     const a =
       'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìıİłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;';
@@ -110,5 +112,37 @@ export class UtilsService {
       .filter(([key, value]) => value !== undefined)
       .map(([key, value]) => `${key}=${value}`)
       .join('&');
+  }
+
+  public static async hashPassword(password: string) {
+    const saltOrRounds = 10;
+    return await bcrypt.hash(password, saltOrRounds);
+  }
+
+  public static async comparePassword(password: string, hash: string) {
+    return await bcrypt.compare(password, hash);
+  }
+
+  /**
+   * Generates a JWT token with enhanced user information
+   * @param accountId User's unique identifier
+   * @param roles User's roles (optional)
+   * @param additionalData Any additional data to include in token (optional)
+   * @returns JWT token string
+   */
+  public async generateJWTToken(
+    accountId: string,
+    roles: string[] = ['user'],
+    additionalData: Record<string, any> = {}
+  ) {
+    // Create a payload with user ID, roles, and any additional data
+    const payload = {
+      sub: accountId,     // subject (user ID)
+      roles,             // user roles for authorization
+      ...additionalData, // any additional data needed
+      iat: Date.now(),   // issued at timestamp
+    };
+    
+    return await this.jwtService.signAsync(payload);
   }
 }
