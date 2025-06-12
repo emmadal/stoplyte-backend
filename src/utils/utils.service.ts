@@ -3,12 +3,14 @@ import { subMinutes } from 'date-fns';
 import { PrismaService } from '../database/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import path from 'path';
+import fs from 'fs';
 
 @Injectable()
 export class UtilsService {
   constructor(private jwtService: JwtService) {}
 
-  public static slugify(url) {
+  public static slugify(url: string) {
     const a =
       'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìıİłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;';
     const b =
@@ -18,24 +20,20 @@ export class UtilsService {
     return url
       .toString()
       .toLowerCase()
-      .replace(/\s+/g, '-') // Replace spaces with -
+      .replace(/\s+/g, '-') // Replace spaces with
       .replace(p, (c) => b.charAt(a.indexOf(c))) // Replace special characters
       .replace(/&/g, '-and-') // Replace & with 'and'
       .replace(/[^\w-]+/g, '') // Remove all non-word characters
-      .replace(/--+/g, '-') // Replace multiple - with single -
-      .replace(/^-+/, '') // Trim - from start of text
-      .replace(/-+$/, ''); // Trim - from end of text
+      .replace(/--+/g, '-') // Replace multiple - with single
+      .replace(/^-+/, '') // Trim - from the start of a text
+      .replace(/-+$/, ''); // Trim - from the end of a text
   }
 
   private static _readModuleFile(
     filePath: string,
-    callback: (...e) => void,
+    callback: (...args: any) => void,
   ): any {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const path = require('path');
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const fs = require('fs');
       const absoluteFilePath = path.resolve(filePath);
       return fs.readFile(absoluteFilePath, 'utf8', callback);
     } catch (e) {
@@ -46,11 +44,10 @@ export class UtilsService {
 
   public static readModuleFile(filePath: string): any {
     return new Promise((resolve, reject) => {
-      this._readModuleFile(filePath, (err, data) => {
+      this._readModuleFile(filePath, (err: any, data: any) => {
         if (err) {
           reject(err);
         }
-
         resolve(data);
       });
     });
@@ -108,10 +105,13 @@ export class UtilsService {
   }
 
   static parseToQuery(query: any) {
-    return Object.entries(query)
-      .filter(([key, value]) => value !== undefined)
-      .map(([key, value]) => `${key}=${value}`)
-      .join('&');
+    return (
+      Object.entries(query)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .filter(([key, value]) => value !== undefined)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('&')
+    );
   }
 
   public static async hashPassword(password: string) {
@@ -133,16 +133,16 @@ export class UtilsService {
   public async generateJWTToken(
     accountId: string,
     roles: string[] = ['user'],
-    additionalData: Record<string, any> = {}
+    additionalData: Record<string, any> = {},
   ) {
     // Create a payload with user ID, roles, and any additional data
     const payload = {
-      sub: accountId,     // subject (user ID)
-      roles,             // user roles for authorization
+      sub: accountId, // subject (user ID)
+      roles, // user roles for authorization
       ...additionalData, // any additional data needed
-      iat: Date.now(),   // issued at timestamp
+      iat: Date.now(), // issued at timestamp
     };
-    
+
     return await this.jwtService.signAsync(payload);
   }
 }
