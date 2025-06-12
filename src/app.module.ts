@@ -13,10 +13,11 @@ import { AdminsModule } from './admin/admin.module';
 import { PartnersModule } from './partners/partners.module';
 import { ConfigModule } from '@nestjs/config';
 import { TransactionModule } from './transaction/transaction.module';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from './utils/jwt-auth.guard';
 import { UtilsModule } from './utils/utils.module';
+import { WorkerModule } from './worker/worker.module';
+import { OpenaiModule } from './openai/openai.module';
 
 @Module({
   imports: [
@@ -26,14 +27,8 @@ import { UtilsModule } from './utils/utils.module';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-    }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        {
-          ttl: 60000,
-          limit: 10,
-        },
-      ],
+      envFilePath: '../.env',
+      cache: true,
     }),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -51,6 +46,8 @@ import { UtilsModule } from './utils/utils.module';
     PartnersModule,
     TransactionModule,
     UtilsModule,
+    WorkerModule,
+    OpenaiModule,
   ],
   providers: [
     {
