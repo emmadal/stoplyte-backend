@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { OpenAiChatResponse } from './interface';
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // This is the default and can be omitted
+});
 
 @Injectable()
 export class OpenAiService {
@@ -9,40 +13,26 @@ export class OpenAiService {
     systemPrompt: string,
     userPrompt: string,
   ): Promise<string> {
-    const openaiKey = process.env.OPENAI_API_KEY;
-    const url = 'https://api.openai.com/v1/chat/completions';
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openaiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0,
-      }),
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0,
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data: OpenAiChatResponse = await response.json();
+    console.log('completion', completion);
 
     if (
-      !data ||
-      !data.choices ||
-      !data.choices[0] ||
-      !data.choices[0].message ||
-      !data.choices[0].message.content
+      !completion.choices ||
+      !completion.choices ||
+      !completion.choices[0] ||
+      !completion.choices[0].message ||
+      !completion.choices[0].message.content
     ) {
       throw new Error('Invalid response from OpenAI');
     }
-    return data.choices[0].message.content;
+    return completion.choices[0].message.content;
   }
 }
