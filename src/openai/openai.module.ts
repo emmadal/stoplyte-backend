@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { OpenAiService } from './openai.service';
-import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [HttpModule],
+  imports: [],
   controllers: [],
   providers: [OpenAiService],
   exports: [OpenAiService],
