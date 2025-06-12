@@ -18,7 +18,6 @@ export class WorkerConsumer extends WorkerHost {
   async process(job: Job<any, any, string>): Promise<any> {
     switch (job.name) {
       case 'score':
-        console.log('JOB NAME:', job.name);
         return await this.handleScoringJob(job);
       default:
         break;
