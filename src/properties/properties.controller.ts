@@ -3,10 +3,22 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { Public } from 'src/decorators/public.decorator';
 import { PropertiesService } from './properties.service';
 import { Roles } from '../decorators/roles.decorator';
+import { PropertyScoringService } from './property-scoring.service';
+import {
+  PropertyScoringFilterDto,
+  PropertyScoringPropertyDto,
+} from './dto/property-scoring.dto';
+import { PropertyScoringQueueService } from './property-scoring-queue.service';
+import { PrismaService } from '../database/prisma.service';
 
 @Controller('properties')
 export class PropertiesController {
-  constructor(private readonly propertiesService: PropertiesService) {}
+  constructor(
+    private readonly propertiesService: PropertiesService,
+    private readonly propertyScoringService: PropertyScoringService,
+    private readonly propertyScoringQueueService: PropertyScoringQueueService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get('/autocomplete')
   @Public()
@@ -33,6 +45,18 @@ export class PropertiesController {
     return this.propertiesService.searchPropertyBySlug(slug);
   }
 
+  @Post('/search-by-gpt-request')
+  @Public()
+  async searchByGptRequest(
+    @Body('query') query: string,
+    @Body('pagination') pagination: any,
+  ) {
+    return this.propertiesService.searchPropertiesByGptRequest(
+      query,
+      pagination,
+    );
+  }
+
   @Get('/:id/request-status')
   @Roles('user')
   async getRequestStatus(@Param('id') id: string) {
@@ -52,6 +76,29 @@ export class PropertiesController {
       email,
       message,
       phone,
+    );
+  }
+
+  @Post('/score')
+  @Public()
+  async scoreProperty(
+    @Body('filter') filter: PropertyScoringFilterDto,
+    @Body('property') property: PropertyScoringPropertyDto,
+  ) {
+    // Returns the scoring result for a property based on the provided filter
+    return this.propertyScoringService.scoreProperty(filter, property);
+  }
+
+  @Post('/score-async')
+  @Public()
+  async scorePropertyAsync(
+    @Body('filter') filter: PropertyScoringFilterDto,
+    @Body('property') property: PropertyScoringPropertyDto,
+  ) {
+    return this.propertyScoringQueueService.scorePropertyAsync(
+      filter,
+      property,
+      this.prisma,
     );
   }
 }

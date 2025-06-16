@@ -13,7 +13,7 @@ export class PropertiesService {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
     private prisma: PrismaService,
-    private accountsService: AccountsService,
+    private accountService: AccountsService,
   ) {}
 
   async autocompleteProperties(searchTerm: string, searchType: string) {
@@ -180,8 +180,11 @@ export class PropertiesService {
 
   async getRequestStatus(id: string) {
     let requestContactStatus = undefined;
-    const tokenInfo = await this.accountsService.getMe();
-    if (tokenInfo?.subscription === 'buyer') {
+    const tokenInfo = await AccountsService.getUserDetailsFromToken(
+      this.request,
+      this.prisma,
+    );
+    if (tokenInfo?.uid && tokenInfo.subscription === 'buyer') {
       requestContactStatus = 'no_request';
       const cr = await this.prisma.contact_request.findFirst({
         where: {
@@ -216,11 +219,11 @@ export class PropertiesService {
     message: string,
     phone: string,
   ) {
-    const currentUser = await this.accountsService.getMe();
+    const currentUser = await this.accountService.getMe();
 
     const exists = await this.prisma.contact_unlisted_request.count({
       where: {
-        buyer: currentUser.uid,
+        buyer: currentUser?.uid,
         propertyId: propertyId,
       },
     });
@@ -295,5 +298,46 @@ ${Object.entries(data.data.ownerInfo)
         phone,
       },
     });
+  }
+
+  async searchPropertiesByGptRequest(query: string, pagination: any) {
+    const apiKey = process.env.REALSTATE_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const url = 'https://api.realestateapi.com/v2/PropGPT';
+    const size = pagination?.pageSize ?? 25;
+    try {
+      const request = await fetch(url, {
+        method: 'POST',
+        headers: {
+          accept: 'text/plain',
+          'content-type': 'application/json',
+          'x-openai-key': `${openaiKey}`,
+          'x-api-key': `${apiKey}`,
+        },
+        body: JSON.stringify({
+          size,
+          query,
+          model: 'gpt-4o-mini',
+        }),
+      });
+      const response = await request.json();
+      const allProperties = await this.prisma.claimed_property.findMany({
+        where: {
+          realstateId: {
+            in: response?.data.map((property: any) => String(property.id)),
+          },
+        },
+      });
+      response?.data.forEach((property: any) => {
+        property.image = `https://maps.googleapis.com/maps/api/streetview?size=250x170&location=${property.latitude},${property.longitude}&key=${process.env.GOOGLE_API_KEY}`;
+        property.stoplyte = allProperties.find(
+          (pt: any) => pt.realstateId === property.id,
+        );
+      });
+      return { result: response?.data, total: response.data?.resultCount };
+    } catch (error: any) {
+      console.log(error);
+      throw error;
+    }
   }
 }
