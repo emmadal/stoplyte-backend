@@ -50,11 +50,32 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Stoplyte API')
-    .setDescription('The Stoplyte API description')
+    .setDescription('The Stoplyte API documentation - Complete endpoint reference with request/response schemas')
     .setVersion('1.0')
-    .addTag('Stoplyte')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .addCookieAuth('stk')
+    .addTag('Accounts', 'User account management endpoints')
+    .addTag('Admin', 'Administrative endpoints')
+    .addTag('Buyers', 'Buyer-specific endpoints')
+    .addTag('Partners', 'Partner integration endpoints')
+    .addTag('Properties', 'Property management endpoints')
+    .addTag('Storage', 'File storage endpoints')
+    .addTag('Transaction', 'Transaction management endpoints')
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  const documentFactory = () => SwaggerModule.createDocument(app, config, {
+    operationIdFactory: (controllerKey, methodKey) => methodKey,
+    deepScanRoutes: true,
+  });
   SwaggerModule.setup('api', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3006, () => {
