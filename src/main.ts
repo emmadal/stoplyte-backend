@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { readFileSync } from 'fs';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
@@ -11,9 +12,23 @@ import {
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    bodyParser: true,
-  });
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // Use HTTPS in production
+  const app = await NestFactory.create(
+    AppModule,
+    isProd
+      ? {
+          httpsOptions: {
+            key: readFileSync(process.env.SSL_KEY_PATH),
+            cert: readFileSync(process.env.SSL_CERT_PATH),
+          },
+          bodyParser: true,
+        }
+      : {
+          bodyParser: true,
+        },
+  );
   app.enableCors({
     credentials: true,
     origin: process.env.FRONTEND_URL,
@@ -43,8 +58,9 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3006, () => {
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     console.log(
-      `Server running on port http://localhost:${process.env.PORT ?? 3006}`,
+      `Server running on port ${protocol}://localhost:${process.env.PORT ?? 3006}`,
     );
   });
 }
