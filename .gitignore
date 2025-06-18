@@ -28,6 +28,7 @@ package-lock.json
 .c9/
 *.launch
 .settings/
+.vercel/
 *.sublime-workspace
 
 # IDE - VSCode
