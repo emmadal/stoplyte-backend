@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import * as ExcelJS from 'exceljs';
 import { AccountsService } from 'src/accounts/accounts.service';
-import { FirebaseAdminService } from 'src/firebase/firebase-admin.service';
 
 @Injectable()
 export class AdminsService {

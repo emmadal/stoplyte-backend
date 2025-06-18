@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { FirebaseAuthModule } from './firebase/firebase-auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AccountsModule } from './accounts/accounts.module';
 import { PrismaModule } from './database/prisma.module';
@@ -27,7 +26,6 @@ import { OpenaiModule } from './openai/openai.module';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '../.env',
       cache: true,
     }),
     JwtModule.register({
@@ -36,7 +34,6 @@ import { OpenaiModule } from './openai/openai.module';
       global: true,
     }),
     PassportModule,
-    FirebaseAuthModule,
     PrismaModule,
     AccountsModule,
     PropertiesModule,

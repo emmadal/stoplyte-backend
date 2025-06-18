@@ -3,7 +3,6 @@ import {
   HttpStatus,
   Inject,
   Injectable,
-  Res,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import {
@@ -27,7 +26,6 @@ interface RequestWithUser extends Request {
 }
 
 import axios from 'axios';
-import { FirebaseAdminService } from 'src/firebase/firebase-admin.service';
 import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
@@ -682,29 +680,17 @@ export class AccountsService {
     address: string;
     status: string;
   }) {
-    const auth = FirebaseAdminService.getAuth();
-    let currentUser;
     const email = `barret+${user.phone}@stoplyte.com`;
-    try {
-      currentUser = await auth.getUserByEmail(email);
-    } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        currentUser = await auth.createUser({ email });
-      } else {
-        throw error;
-      }
-    }
     const userInfo = await this.prisma.accounts.findFirst({
       where: {
-        uid: currentUser.uid,
+        email: email,
       },
     });
     if (!userInfo) {
       await this.prisma.accounts.create({
         data: {
-          uid: currentUser.uid,
-          email: currentUser.email,
-          displayName: currentUser.email,
+          email: email,
+          displayName: email,
           subscription: 'seller',
           systemRole: 'user',
         },
@@ -737,7 +723,7 @@ export class AccountsService {
 
     await this.claimPropertyForUser(
       data[0].propertyId,
-      currentUser.uid,
+      userInfo.uid,
       false,
       mappedStatus,
       0,
