@@ -1,3 +1,4 @@
+import '@bull-board/ui/package.json';
 import { Global, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ExpressAdapter } from '@bull-board/express';

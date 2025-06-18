@@ -11,10 +11,5 @@
       "src": "/(.*)",
       "dest": "src/main.ts"
     }
-  ],
-  "functions": {
-    "api/**.ts": {
-      "includeFiles": "node_modules/@bull-board/ui/**"
-    }
-  }
+  ]
 }
