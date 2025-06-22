@@ -252,12 +252,12 @@ export class PropertiesService {
     );
 
     const emailDetails = `The user ${currentUser.displayName} has requested information on the property: ${process.env.FRONTEND_BASE_URL}/properties/${propertySlug}
-    
+
     Email: ${email}
     Phone: ${phone}
     Message (optional):${message}
-    
-    Property Info: 
+
+    Property Info:
     - Owner Info:
 ${Object.entries(data.data.ownerInfo)
   .filter(([, value]) => !!value)
@@ -304,7 +304,7 @@ ${Object.entries(data.data.ownerInfo)
     const apiKey = process.env.REALSTATE_API_KEY;
     const openaiKey = process.env.OPENAI_API_KEY;
     const url = 'https://api.realestateapi.com/v2/PropGPT';
-    const size = pagination?.pageSize ?? 25;
+    const size = pagination?.pageSize ?? 200;
     try {
       const request = await fetch(url, {
         method: 'POST',
@@ -321,18 +321,24 @@ ${Object.entries(data.data.ownerInfo)
         }),
       });
       const response = await request.json();
-      const allProperties = await this.prisma.claimed_property.findMany({
-        where: {
-          realstateId: {
-            in: response?.data.map((property: any) => String(property.id)),
-          },
-        },
-      });
+      // const allProperties = await this.prisma.claimed_property.findMany({
+      //   where: {
+      //     realstateId: {
+      //       in: response?.data.map((property: any) => String(property.id)),
+      //     },
+      //   },
+      // });
+      // response?.data.forEach((property: any) => {
+      //   property.image = `https://maps.googleapis.com/maps/api/streetview?size=250x170&location=${property.latitude},${property.longitude}&key=${process.env.GOOGLE_API_KEY}`;
+      //   property.stoplyte = allProperties.find(
+      //     (pt: any) => pt.realstateId === property.id,
+      //   );
+      // });
       response?.data.forEach((property: any) => {
         property.image = `https://maps.googleapis.com/maps/api/streetview?size=250x170&location=${property.latitude},${property.longitude}&key=${process.env.GOOGLE_API_KEY}`;
-        property.stoplyte = allProperties.find(
-          (pt: any) => pt.realstateId === property.id,
-        );
+        // property.stoplyte = allProperties.find(
+        //   (pt: any) => pt.realstateId === property.id,
+        // );
       });
       return { result: response?.data, total: response.data?.resultCount };
     } catch (error: any) {
