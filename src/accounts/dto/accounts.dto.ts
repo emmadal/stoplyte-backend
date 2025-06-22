@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsArray,
   IsEmail,
+  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -56,7 +57,6 @@ export class CreateAccountDTO {
   @IsUrl()
   @IsOptional()
   readonly image: string;
-  
 
   @ApiPropertyOptional({
     description: 'Push notification token for mobile devices',
@@ -172,4 +172,14 @@ export class LoginAccountDTO {
   @IsString()
   @IsNotEmpty()
   readonly password: string;
+}
+
+export class RefreshTokenDTO {
+  @ApiProperty({
+    description: 'Refresh token',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  readonly accountId: string;
 }

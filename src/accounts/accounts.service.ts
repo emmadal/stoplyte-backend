@@ -1,9 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import {
   CreateAccountDTO,
@@ -98,13 +93,31 @@ export class AccountsService {
       },
     });
     if (existingUser) {
-      throw new HttpException('User already exists', HttpStatus.CONFLICT);
+      const token = await this.utilsService.generateJWTToken(existingUser.uid);
+      return { existingUser, token };
+    } else {
+      const user = await this.prisma.accounts.create({
+        data: createAccountDTO,
+      });
+      const token = await this.utilsService.generateJWTToken(user.uid);
+      return { user, token };
     }
-    const user = await this.prisma.accounts.create({
-      data: createAccountDTO,
+  }
+
+  async refreshAccessToken(accountId: string) {
+    const user = await this.prisma.accounts.findUnique({
+      where: {
+        uid: accountId,
+        AND: {
+          isActive: true,
+        },
+      },
     });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
     const token = await this.utilsService.generateJWTToken(user.uid);
-    return { user, token };
+    return token;
   }
 
   async login(loginEventDto: LoginAccountDTO) {
