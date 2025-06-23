@@ -13,6 +13,8 @@ yarn-error.log*
 lerna-debug.log*
 yarn.lock
 package-lock.json
+api/
+api_request/
 
 # OS
 .DS_Store
