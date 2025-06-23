@@ -12,23 +12,12 @@ import {
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const isProd = process.env.NODE_ENV === 'production';
+  // const isProd = process.env.NODE_ENV === 'production';
 
   // Use HTTPS in production
-  const app = await NestFactory.create(
-    AppModule,
-    isProd
-      ? {
-          httpsOptions: {
-            key: readFileSync(process.env.SSL_KEY_PATH),
-            cert: readFileSync(process.env.SSL_CERT_PATH),
-          },
-          bodyParser: true,
-        }
-      : {
-          bodyParser: true,
-        },
-  );
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+  });
   app.enableCors({
     credentials: true,
     origin: process.env.FRONTEND_URL,
@@ -50,7 +39,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Stoplyte API')
-    .setDescription('The Stoplyte API documentation - Complete endpoint reference with request/response schemas')
+    .setDescription(
+      'The Stoplyte API documentation - Complete endpoint reference with request/response schemas',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -72,17 +63,16 @@ async function bootstrap() {
     .addTag('Storage', 'File storage endpoints')
     .addTag('Transaction', 'Transaction management endpoints')
     .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config, {
-    operationIdFactory: (controllerKey, methodKey) => methodKey,
-    deepScanRoutes: true,
-  });
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey, methodKey) => methodKey,
+      deepScanRoutes: true,
+    });
   SwaggerModule.setup('api', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3006, () => {
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    console.log(
-      `Server running on port ${protocol}://localhost:${process.env.PORT ?? 3006}`,
-    );
+    console.log(`Server running on port ${process.env.PORT ?? 3006}`);
   });
 }
 
