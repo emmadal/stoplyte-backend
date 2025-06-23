@@ -75,7 +75,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     request: RequestWithUser,
   ): string | undefined {
     // First, try to extract from cookie (your existing approach)
-    const cookieToken = request.cookies?.['stk'];
+    const cookieToken = request.cookies?.['next-auth.session-token'];
     if (cookieToken) {
       return cookieToken;
     }

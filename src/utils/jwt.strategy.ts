@@ -10,7 +10,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromExtractors([
         // First check cookies
         (request: Request) => {
-          const cookieToken = request?.cookies?.['stk'];
+          const cookieToken = request?.cookies?.['next-auth.session-token'];
           if (cookieToken) {
             return cookieToken;
           }
