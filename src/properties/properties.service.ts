@@ -39,7 +39,6 @@ export class PropertiesService {
     const formattedData = data.map((item) => {
       return `${item.title}`;
     });
-
     return { result: { data, formattedData } };
   }
 

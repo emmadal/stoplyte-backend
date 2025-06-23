@@ -783,7 +783,7 @@ export class AccountsService {
     const expirationDate = new Date(Date.now() + cookieDuration);
     const isDev = process.env.NODE_ENV === 'development';
 
-    res.cookie('stk', token, {
+    res.cookie('next-auth.session-token', token, {
       httpOnly: true,
       // When using the sameSite: 'none', secure must be true (even in development)
       // For local development with http://localhost, use 'lax' instead
